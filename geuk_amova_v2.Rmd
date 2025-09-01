@@ -1,0 +1,277 @@
+---
+title: "geuk_amova_v2"
+author: "Anderson Smith"
+date: "2025-08-25"
+output: html_document
+---
+
+#Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cleaned data analysis sheet for mitochondrial Geukensia data
+The goal of this analysis is to detect the presence or absence of IBD,
+hierarchical population structure, or both for COI data from across the range of
+Geukensia demissa. 
+
+#Loading packages
+```{r, echo = FALSE}
+#install.packages("pegas")
+#install.packages("ade4")
+#install.packages("ape")
+#install.packages("poppr")
+install.packages("knitr")
+library(knitr)
+library(pegas)
+library(ape)
+library(fields)
+library(vegan)
+library(poppr)
+library(phylotools)
+library(seqinr)
+library(stringr)
+library(dplyr)
+library(ade4)
+```
+Definitely in the package trap here. This chunk is a huge target for 
+streamlining.
+
+#Bring in mussels under a bunch of different data structures (thanks popgen!)
+```{r, echo=FALSE}
+#DNAbin format
+seqs_dnabin<-read.FASTA("dec_31_2024_Geukensia_ALL_no_Gg_no_TP.fasta")
+#Distance matrix of those data
+dists<-dist.dna(seqs_dnabin,model="raw",pairwise.deletion=TRUE, as.matrix=TRUE)
+
+seqs<-read.fasta("dec_31_2024_Geukensia_ALL_no_Gg_no_TP.fasta")
+
+#Genind so that we can apply pop labels
+geuk<-DNAbin2genind(seqs_dnabin,pop=geukpops,exp.char=c("a","t","g","c"))
+```
+Note: the txt file we supply should be the one on my local machine because
+I removed 3 TPs that snuck their way in.
+
+#Assign locations to each sequence
+```{r}
+geukpops<-c("Hunt Camp, Sapelo, GA", "Upper Dean Creek", "Upper Dean Creek","Upper Dean Creek",
+          "Hunt Camp, Sapelo, GA","Hunt Camp, Sapelo, GA","Chocolate, Sapelo, GA", 
+          "Charleston, SC","Whitney lab", "Whitney lab", "Whitney lab", "Whitney lab",
+          "Whitney lab","Old Beach, Sapelo, GA","Lake Worth, Florida", "Bike Path, Sapelo, GA", 
+          "Sapelo Island Airport, GA","Chocolate, Sapelo, GA","Chocolate, Sapelo, GA", 
+          "Upper Dean Creek","Hunt Camp, Sapelo, GA", "Hunt Camp, Sapelo, GA", 
+          "Lower Dean Creek, GA","Lower Dean Creek, GA","Ponce Inlet", 
+          "George Island, MD", "Woods Hole, MA", "George Island, MD","Whitney lab",
+          "Goldstar Battalion Beach","Bike Path, Sapelo, GA","Sapelo Island Airport, GA",
+          "Chocolate, Sapelo, GA", "Chocolate, Sapelo, GA", "Hunt Camp, Sapelo, GA",
+          "Hunt Camp, Sapelo, GA", "Hunt Camp, Sapelo, GA", "Lower Dean Creek, GA",
+          "Lower Dean Creek, GA","Old Beach, Sapelo, GA","Old Beach, Sapelo, GA",
+          "Ponce Inlet", "Ponce Inlet", "Ponce Inlet", "Ponce Inlet", "Ponce Inlet",
+          "Sapelo Island Airport, GA", "Chocolate, Sapelo, GA", "Lower Dean Creek, GA",
+          "Ponce Inlet","Ponce Inlet", "Riverside, Sapelo, GA","Whitney lab",
+          "Savannah, GA", "Bike Path, Sapelo, GA", "Hunt Camp, Sapelo, GA", "Lower Dean Creek, GA",  
+          "Bivalve, NJ", "Goldstar Battalion Beach", "Green Island, NY", "Green Island, NY",
+          "George Island, MD", "Damariscotta, ME", "Plum Island Ecosystem, MA",
+          "Plum Island Ecosystem, MA", "Plum Island Ecosystem, MA",
+          "Plum Island Ecosystem, MA", "Plum Island Ecosystem, MA", "Plum Island Ecosystem, MA",
+          "Gloucester Point, VA", "Ponce Inlet", 
+          "Savannah, GA", "Savannah, GA", "Charleston, SC", "Bike Path, Sapelo, GA", 
+          "Lower Dean Creek, GA", "Antigonish, NS", "Woods Hole, MA", 
+          "Savannah, GA", "Antigonish, NS", "Whitney lab", "Chocolate, Sapelo, GA", 
+          "Old Beach, Sapelo, GA", "Bike Path, Sapelo, GA", "Bike Path, Sapelo, GA", 
+          "Sapelo Island Airport, GA",
+          "Sapelo Island Airport, GA", "Chocolate, Sapelo, GA", "Chocolate, Sapelo, GA",
+          "Upper Dean Creek","Upper Dean Creek", "Upper Dean Creek", "Hunt Camp, Sapelo, GA", 
+          "Hunt Camp, Sapelo, GA","Lower Dean Creek, GA","Lower Dean Creek, GA",
+          "Lower Dean Creek, GA", "Old Beach, Sapelo, GA", "Old Beach, Sapelo, GA",
+          "Old Beach, Sapelo, GA", "Old Beach, Sapelo, GA", "Old Beach, Sapelo, GA",
+          "Old Beach, Sapelo, GA", "Old Beach, Sapelo, GA", "Old Beach, Sapelo, GA",
+          "Ponce Inlet", "Ponce Inlet", "Ponce Inlet", "Ponce Inlet", 
+          "Gloucester Point, VA", "Woods Hole, MA", "Green Island, NY",
+          "Riverside, Sapelo, GA","Boat Basin, NJ", "Goldstar Battalion Beach",
+          "Green Island, NY", "George Island, MD", "Charleston, SC", 
+          "Lake Worth, Florida", "Ponce Inlet", "Whitney lab", "Whitney lab",
+          "Goldstar Battalion Beach", "Chocolate, Sapelo, GA","Bivalve, NJ", "Bike Path, Sapelo, GA", 
+          "Plum Island Ecosystem, MA","Woods Hole, MA","Woods Hole, MA",
+          "Woods Hole, MA", "Boat Basin, NJ", "Bivalve, NJ", "Savannah, GA", 
+          "Savannah, GA", "DO", "Boat Basin, NJ", "Bivalve, NJ", "Boat Basin, NJ",
+          "Boat Basin, NJ", "Boat Basin, NJ","Bivalve, NJ", "Boat Basin, NJ",
+          "Boat Basin, NJ","Boat Basin, NJ", "Savannah, GA","Goldstar Battalion Beach",
+          "Green Island, NY",  "Green Island, NY",  "Green Island, NY",
+          "Green Island, NY",  "Green Island, NY", "George Island, MD",
+          "George Island, MD", "George Island, MD", "George Island, MD", 
+          "George Island, MD", "Damariscotta, ME", "Plum Island Ecosystem, MA",
+          "Plum Island Ecosystem, MA", "Charleston, SC", "Charleston, SC",
+          "Gloucester Point, VA",  "Gloucester Point, VA",  "Gloucester Point, VA",
+          "Gloucester Point, VA","Woods Hole, MA", "Woods Hole, MA", "Woods Hole, MA",
+          "Woods Hole, MA", "Woods Hole, MA", "Woods Hole, MA", "Gloucester Point, VA",
+          "Ponce Inlet", "Antigonish, NS", "Lower Dean Creek, GA", "Youngman, Sapelo, GA",
+          "Riverside, Sapelo, GA", "Sapelo Island Airport, GA", "Upper Dean Creek",
+          "Lower Dean Creek, GA","Lower Dean Creek, GA","Savannah, GA",
+          "Woods Hole, MA","Whitney lab", "Lake Worth, Florida","Upper Dean Creek", 
+          "Sapelo Island Airport, GA","Woods Hole, MA", "Goldstar Battalion Beach",
+          "Woods Hole, MA", "Chocolate, Sapelo, GA","Ponce Inlet",
+          "Chocolate, Sapelo, GA","Green Island, NY","George Island, MD",
+          "Upper Dean Creek",  "Woods Hole, MA","Ponce Inlet","Old Beach, Sapelo, GA",
+          "Savannah, GA", "Youngman, Sapelo, GA", "Youngman, Sapelo, GA", 
+          "Youngman, Sapelo, GA", "Youngman, Sapelo, GA", "Youngman, Sapelo, GA", 
+          "Charleston, SC","Lower Dean Creek, GA", "George Island, MD","Ponce Inlet",
+          "DO","George Island, MD","Chocolate, Sapelo, GA","Savannah, GA","Savannah, GA",
+          "Green Island, NY","Green Island, NY","Green Island, NY", "George Island, MD",
+          "George Island, MD","Charleston, SC","Charleston, SC","Charleston, SC",
+          "Gloucester Point, VA","Gloucester Point, VA","Gloucester Point, VA",
+          "Gloucester Point, VA", "Lake Worth, Florida","Goldstar Battalion Beach", 
+          "Bivalve, NJ","Goldstar Battalion Beach","Goldstar Battalion Beach",
+          "Goldstar Battalion Beach","Green Island, NY","Green Island, NY", 
+          "Green Island, NY","Gloucester Point, VA","Gloucester Point, VA", "Bike Path, Sapelo, GA",
+          "Bike Path, Sapelo, GA", "Bike Path, Sapelo, GA","Riverside, Sapelo, GA",
+          "Riverside, Sapelo, GA",
+          "Riverside, Sapelo, GA","Riverside, Sapelo, GA","Boat Basin, NJ",
+          "Boat Basin, NJ","Lake Worth, Florida","Gloucester Point, VA",
+          "Youngman, Sapelo, GA","George Island, MD","Chocolate, Sapelo, GA",
+          "Youngman, Sapelo, GA","Lake Worth, Florida","Upper Dean Creek","Chocolate, Sapelo, GA",
+          "Savannah, GA","Boat Basin, NJ","Goldstar Battalion Beach",
+          "Sapelo Island Airport, GA","Old Beach, Sapelo, GA", "DO", "Antigonish, NS",
+          "Antigonish, NS","Charleston, SC","Green Island, NY","DO","DO","DO","DO",
+          "Upper Dean Creek","George Island, MD","Upper Dean Creek","Chocolate, Sapelo, GA",
+          "Lake Worth, Florida","Lake Worth, Florida","Woods Hole, MA","Ponce Inlet",
+          "Chocolate, Sapelo, GA","Old Beach, Sapelo, GA", "Upper Dean Creek",
+          "Old Beach, Sapelo, GA","Goldstar Battalion Beach","Ponce Inlet",
+          "Youngman, Sapelo, GA","Youngman, Sapelo, GA","Savannah, GA","DO",
+          "Lower Dean Creek, GA","DO","Green Island, NY","Boat Basin, NJ",
+          "Charleston, SC","Youngman, Sapelo, GA","Lake Worth, Florida","DO","DO",
+          "DO","Upper Dean Creek","Bike Path, Sapelo, GA","Bike Path, Sapelo, GA",
+          "Chocolate, Sapelo, GA", "Whitney lab","Ponce Inlet",
+          "Lower Dean Creek, GA","Gloucester Point, VA","Chocolate, Sapelo, GA",
+          "Charleston, SC","Old Beach, Sapelo, GA","George Island, MD",
+          "Bivalve, NJ","Lower Dean Creek, GA","Hunt Camp, Sapelo, GA", 
+          "Hunt Camp, Sapelo, GA"," Upper Dean Creek","Charleston, SC","DO",
+          "Lake Worth, Florida","Lake Worth, Florida","Lake Worth, Florida",
+          "Lower Dean Creek, GA","Ponce Inlet","Bivalve, NJ","Savannah, GA",
+          "Savannah, GA","Savannah, GA","Savannah, GA", "Goldstar Battalion Beach",
+          "Goldstar Battalion Beach","Goldstar Battalion Beach","George Island, MD",
+          "Plum Island Ecosystem, MA","Charleston, SC","Charleston, SC",
+          "Charleston, SC","Charleston, SC","Charleston, SC","Gloucester Point, VA",
+          "Woods Hole, MA","Woods Hole, MA","Woods Hole, MA", "Bike Path, Sapelo, GA",
+          "Sapelo Island Airport, GA", "Chocolate, Sapelo, GA",
+          "Sapelo Island Airport, GA","Bike Path, Sapelo, GA",
+          "Youngman, Sapelo, GA","Youngman, Sapelo, GA","Youngman, Sapelo, GA",
+          "Woods Hole, MA","DO","Sapelo Island Airport, GA","Whitney lab","Bike Path, Sapelo, GA",
+          "Ponce Inlet","DO","DO","DO","DO","Old Beach, Sapelo, GA","Bike Path, Sapelo, GA",
+          "Lower Dean Creek, GA","Plum Island Ecosystem, MA","Lake Worth, Florida",
+          "Lake Worth, Florida","Lake Worth, Florida","Lake Worth, Florida","DO",
+          "DO","Sapelo Island Airport, GA","Hunt Camp, Sapelo, GA",
+          "Goldstar Battalion Beach","Antigonish, NS","Boat Basin, NJ",
+          "Antigonish, NS","Goldstar Battalion Beach","Goldstar Battalion Beach",
+          "Goldstar Battalion Beach","Goldstar Battalion Beach","Green Island, NY",
+          "Damariscotta, ME","Damariscotta, ME","Damariscotta, ME","Damariscotta, ME",
+          "Plum Island Ecosystem, MA","Plum Island Ecosystem, MA",
+          "Plum Island Ecosystem, MA","Gloucester Point, VA","Woods Hole, MA",
+          "Woods Hole, MA","Antigonish, NS","Antigonish, NS","Antigonish, NS",
+          "Hunt Camp, Sapelo, GA","Ponce Inlet","Ponce Inlet","Bivalve, NJ", 
+          "Bike Path, Sapelo, GA","Bike Path, Sapelo, GA","Bike Path, Sapelo, GA",
+          "Bike Path, Sapelo, GA","Bike Path, Sapelo, GA","Riverside, Sapelo, GA",
+          "Riverside, Sapelo, GA",
+          "Riverside, Sapelo, GA","Antigonish, NS","Savannah, GA","Charleston, SC",
+          "Gloucester Point, VA","Damariscotta, ME"
+             )
+
+#Stick them in the genind
+seqs$pops <-geukpops
+```
+If there is an earthly way to streamline this, I need to do it before submission.
+
+#Add latlongs to the tibble form of "seqs"
+```{r}
+str(seqs)
+seqs$lats <- ifelse(seqs$pops %in% "Hunt Camp, Sapelo, GA", "31.481", 
+                   ifelse(seqs$pops %in% "DO", "32.038",
+                   ifelse(seqs$pops %in% "Bike Path, Sapelo, GA", "31.083",
+                   ifelse(seqs$pops %in% "Old Beach, Sapelo, GA", "31.409",
+                   ifelse(seqs$pops %in% "Lower Dean Creek, GA", "31.392",
+                   ifelse(seqs$pops %in% "Riverside, Sapelo, GA", "31.176",
+                   ifelse(seqs$pops %in% "Youngman, Sapelo, GA", "31.626", 
+                   ifelse(seqs$pops %in% "Lake Worth, Florida", "26.7171667",
+                   ifelse(seqs$pops %in% "Ponce Inlet", "29.134",
+                   ifelse(seqs$pops %in% "Sapelo Island Airport, GA", "31.419",
+                   ifelse(seqs$pops %in% "Whitney lab", "29.833",
+                   ifelse(seqs$pops %in% "Upper Dean Creek", "31.394072",
+                   ifelse(seqs$pops %in% "Chocolate, Sapelo, GA", "31.502",
+                   ifelse(seqs$pops %in% "Savannah, GA", "32.038",
+                   ifelse(seqs$pops %in% "Charleston, SC", "32.76158333",
+                   ifelse(seqs$pops %in% "Gloucester Point, VA", "37.306988",
+                   ifelse(seqs$pops %in% "George Island, MD", "38.022821",
+                   ifelse(seqs$pops %in% "Boat Basin, NJ", "39.555",
+                   ifelse(seqs$pops %in% "Bivalve, NJ", "39.234011",
+                   ifelse(seqs$pops %in% "Green Island, NY", "40.365879",
+                   ifelse(seqs$pops %in% "Goldstar Battalion Beach", "40.8968",
+                   ifelse(seqs$pops %in% "Plum Island Ecosystem, MA", "42.759",
+                   ifelse(seqs$pops %in% "Woods Hole, MA", "41.576",
+                   ifelse(seqs$pops %in% "Damariscotta, ME", "44.0142447", "45.6679"
+                         ))))))))))))))))))))))))
+
+seqs$longs <- ifelse(seqs$pops %in% "Hunt Camp, Sapelo, GA", "-81.271", 
+                   ifelse(seqs$pops %in% "DO", "-81.048",
+                   ifelse(seqs$pops %in% "Bike Path, Sapelo, GA", "-81.425",
+                   ifelse(seqs$pops %in% "Old Beach, Sapelo, GA", "-81.262",
+                   ifelse(seqs$pops %in% "Lower Dean Creek, GA", "-81.271",
+                   ifelse(seqs$pops %in% "Riverside, Sapelo, GA", "-81.456",
+                   ifelse(seqs$pops %in% "Youngman, Sapelo, GA", "-81.327", 
+                   ifelse(seqs$pops %in% "Lake Worth, Florida", "-80.078",
+                   ifelse(seqs$pops %in% "Ponce Inlet", "-80.955",
+                   ifelse(seqs$pops %in% "Sapelo Island Airport, GA", "-81.290",
+                   ifelse(seqs$pops %in% "Whitney lab", "-81.325",
+                   ifelse(seqs$pops %in% "Upper Dean Creek", "-81.281",
+                   ifelse(seqs$pops %in% "Chocolate, Sapelo, GA", "-81.255",
+                   ifelse(seqs$pops %in% "Savannah, GA", "-81.048",
+                   ifelse(seqs$pops %in% "Charleston, SC", "-79.96671667",
+                   ifelse(seqs$pops %in% "Gloucester Point, VA", "-76.411197",
+                   ifelse(seqs$pops %in% "George Island, MD", "-75.214441",
+                   ifelse(seqs$pops %in% "Boat Basin, NJ", "-74.363",
+                   ifelse(seqs$pops %in% "Bivalve, NJ", "-75.031225",
+                   ifelse(seqs$pops %in% "Green Island, NY", "-73.301449",
+                   ifelse(seqs$pops %in% "Goldstar Battalion Beach", "-73.4341",
+                   ifelse(seqs$pops %in% "Plum Island Ecosystem, MA", "-70.891",
+                   ifelse(seqs$pops %in% "Woods Hole, MA", "-70.639",
+                   ifelse(seqs$pops %in% "Damariscotta, ME", "-69.5375049", "-61.8783"
+                         ))))))))))))))))))))))))
+
+latlongs<- seqs %>% 
+  select(longs, lats) 
+```
+
+
+This is where I start running into issues. Matrix conversion is hard...
+#Convert latlongs to matrix, calculate GC distance
+```{r}
+str(latlongs)
+
+latlong_matrix <- as.matrix(latlongs)
+numeric_latlongs <- matrix(as.numeric(latlongs))
+#FIX!!!!! need new df without some pops
+#so also need corresponding gene matrix... time to do matrix work for peyton but again
+latlongs_fst <- seqs %>% 
+  select(pops, lats, longs) %>% 
+  unique() %>% 
+  arrange(lats) %>%
+  mutate(lats = as.numeric(lats),
+         longs = as.numeric(longs)) 
+col.order <- c("longs", "lats", "pops")
+gc_dist_fst <- rdist.earth(latlongs_fst, x2=NULL, miles = TRUE, R = NULL)
+gc_dists <- rdist.earth(latlong_matrix, x2 = NULL, miles = TRUE, R = NULL)
+
+#Mantel test
+#install.packages("vegan")
+library(vegan)
+
+ibd_mantel  = mantel(dists, gc_dist_fst, method = "spearman", permutations = 999, na.rm = TRUE)
+ibd_mantel
+
+#Confused. how do I keep names in matrix for FST purposes?
+#FIX!
+ibd_fst_mantel = mantel(geuk_fst, gc_dist_fst, method = "spearman", permutations = 999, na.rm = TRUE)
+
+latlongs_fst <- latlongs_fst[, col.order]
+str(latlongs_fst)
+```
+
