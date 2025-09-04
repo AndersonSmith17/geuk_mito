@@ -15,7 +15,12 @@ library(ade4)
 library(adegenet)
 library(spider)
 
+#john
 setwd("~/Dropbox/Anderson Geukensia 2025")
+
+#anderson
+setwd("C:/Users/andersonsmith/Desktop/R/GitHub/geuk_mito")
+
 ```
 
 Next reading in the data, and first trying out a new package called 'haplotypes'. This one I messed around with a few times, at first doing what I thought to be 'random' pulls of sequences from the alignment but because the alignment was organized by the resultant phylogeny (!) it actually threw me for a loop at first until I figured out instead to really look at our data by actual site, that is drawing from the alignment "alphaGeuk3" and using a substring to sort into populations:
@@ -34,7 +39,7 @@ library(haplotypes)
 #subsubpops<-factor(c(rep("A",25),rep("B",25),rep("C",25),rep("D",25)))
 #GeukAMOVA<-pairPhiST(subsubgeuk,subsubpops,nperm=100,negatives=FALSE,indels="missing")
 
-alphageuk<-read.fas("alphaGeuk3.fasta")
+alphageuk<-read.fas("allGeukSep4_done.fasta")
 locations<-substr(alphageuk@seqnames,1,4)
 truepops<-locations
 
@@ -47,32 +52,27 @@ This will indeed give you pairwise PhiST among sites, and in this case they are 
 
 ```{r nescent}
 
-library("apex")
-library("adegenet")
 library("pegas")
-library("mmod")
-library("poppr")
-
-GeukData <- read.multiFASTA(c("alphaGeuk3.fasta")) #note changed to the sequences ordered by location now
+GeukData <- read.multiFASTA(c("allGeukSep4_done.fasta")) #note changed to the sequences ordered by location now
 #probably do not need the read.multiFASTA at this point it is just getting data into genind and doing mostly in POPPR (AMOVA) and pairwise_Gst using (mmod).
-plot(GeukData)
 
+#Prepping genind 
+plot(GeukData)
 locations<-substr(alphageuk@seqnames,1,4)
 truepops<-locations
-
 Geuk2<-multidna2genind(GeukData)
 Geuk2
-my_strata<-data.frame(regions=factor(c(rep("north",21),rep("south",215))), populations=truepops) #this now splits them into regions of NOVA SCOTIA versus the REST
-strata(Geuk2)<- my_strata
-setPop(Geuk2)<- ~populations
-
-Geuk2
-
 pairwise_Gst_Nei(Geuk2)
 
 dists<-dist.multidna(GeukData,pool=TRUE) #pool=TRUE ends up being important so this is a numeric thing
 
-amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100) #FINALLY
+#Splitting the sites up into region models
+#NOVA SCOTIA
+scotia_strata<-data.frame(regions=factor(c(rep("north",21), rep("south",432))), populations=truepops)
+strata(Geuk2)<-scotia_strata
+setPop(Geuk2)<- ~populations
+
+pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100) #FINALLY
 
 #devtools::install_github('ericarcher/strataG', build_vignettes=TRUE) #argh trying this https://github.com/EricArcher/strataG I did all but step 5 so far and then stymied
 
