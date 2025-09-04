@@ -91,3 +91,58 @@ poppr.amova(Geuk2, ~regions/populations, method="ade4") #or "pegas"
 
 Other methods I used (including asking a damned LLM for a recipe, grrrr) did not work. Some are deprecated like 'popgenome' and many, circularly, come back to basically the 2 key implementations in either ade4 or pegas. Yet, pegas does a lot but does not seem to do pairwise sample metrics like PhiST, same with 'ade4'. Package 'adegenet' similar limitations. 
 
+#Map graphic
+```{r}
+#Install and load packages
+install.packages("mapdata")
+install.packages("maptools", 
+                 repos = "https://packagemanager.posit.co/cran/2023-10-13")
+library (tidyverse)
+library(maptools)
+library(mapdata)
+
+#Make df of all sampling points
+geuk_lat <- c(45.6679, 44.0142447, 42.759, 41.576, 40.8968, 40.3700, 39.31141, 
+              38.0228, 37.306988, 32.76158333, 32.038, 26.7171667,
+              29.134, 29.833, 31.392, 35.903, 34.702, 34.175, 44.65069)
+geuk_lon <- c(-61.8783, -69.5375049, -70.891, -70.639, -73.4341, -73.3014, 
+              -74.2, -75.2144, -76.411197, -79.96671667, -81.048, -80.078,
+              -80.955, -80.955, -81.271, -75.604, -76.751, -77.932, -63.42344)
+
+geuk_dat <- data.frame(lat=geuk_lat, lon=geuk_lon)
+
+#Map of US, Canada, and Mexico with sample sites included
+usa <- map_data("usa")
+canada <- map_data("worldHires", "Canada")
+mexico <- map_data("worldHires", "Mexico")
+
+NAmap <- ggplot() + geom_polygon(data = usa, 
+                                 aes(x=long, y = lat, group = group), 
+                                 fill = "white", 
+                                 color = "black") +
+  geom_polygon(data = canada, aes(x=long, y = lat, group = group), 
+               fill = "white", color="black") + 
+  geom_polygon(data = mexico, aes(x=long, y = lat, group = group), 
+               fill = "white", color="black") +
+  coord_fixed(xlim = c(-81, -60),  ylim = c(25, 48), ratio = 1.1) +
+  geom_point(data = geuk_dat,
+             aes(x = lon,
+            y = lat), 
+            color = "mediumorchid3",
+            size = 3.3)+
+  annotate("text", y = 35.5, x = -74, label = "A", size = 7) +
+  annotate("text", y = 41.5, x = -69, label = "B", size = 7) +
+   annotate("text", y = 42.5, x = -65.5, label = "C", size = 7) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  theme_minimal()
+
+NAmap 
+
+ggsave("gss_musselmap.pdf",
+       plot = NAmap,
+       device = "pdf",
+       scale = 1,
+       dpi = "print",
+       limitsize = TRUE)
+```
