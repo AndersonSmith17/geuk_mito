@@ -110,14 +110,64 @@ poppr.amova(Geuk2, ~regions/populations, method="ade4") #or "pegas"
 
 Other methods I used (including asking a damned LLM for a recipe, grrrr) did not work. Some are deprecated like 'popgenome' and many, circularly, come back to basically the 2 key implementations in either ade4 or pegas. Yet, pegas does a lot but does not seem to do pairwise sample metrics like PhiST, same with 'ade4'. Package 'adegenet' similar limitations. 
 
-#Nucleotide diversities (messy)
+#Nucleotide diversities (messy but only uses pegas)
 ```{r}
-geuk_nucdiv <- read.dna("allGeukSep4_done.fasta", format = "fasta")
+#Create DNAbin
+geuk_nucdiv <- read.dna("allGeukSep4_done.fasta", format = "fasta") 
 
 nuc.div(geuk_nucdiv, variance = FALSE)
 # total pi = 0.01163113
 
-pi_ag <- geuk_nucdiv[c("GDAG08_CO1",)]
+#antigonish
+pi_ag <- geuk_nucdiv[c("GDAG08_CO1","GDAG01_CO1", "GDAG02_CO1", "GDAG03_CO1",
+                       "GDAG04_CO1", "GDAG05_CO1", "GDAG06_CO1", "GDAG07_CO1", 
+                       "GDAG08_CO1", "GDAG09_CO1", "GDAG10_CO1", "GDAG11_CO1")] %>% 
+  as.list() %>% 
+nuc.div(, variance = FALSE) #0.00466
+
+#halifax
+pi_hx <- geuk_nucdiv[c("GDHX10","GDHX2", "GDHX3", "GDHX4",
+                       "GDHX5", "GDHX6", "GDHX7", "GDHX8", 
+                       "GDHX9")] %>% 
+  as.list() %>% 
+nuc.div(, variance = FALSE) #0 -- private haplotype!
+
+#maine
+pi_me <- geuk_nucdiv[c("GDME01_CO1","GDME02_CO1", "GDME03_CO1", "GDME05_CO1",
+                       "GDME06_CO1", "GDME07_CO1", "GDME08_CO1")] %>% 
+  as.list() %>% 
+nuc.div(, variance = FALSE) #0.01098 -- note how it picks up below HX
+
+#plum island
+pi_pie <- geuk_nucdiv[c("GDPIE02_CO1","GDPIE03_CO1", "GDPIE04_CO1", "GDPIE05_CO1",
+                       "GDPIE06_CO1", "GDPIE07_CO1", "GDPIE08_CO1", "GDPIE09_CO1",
+                       "GDPIE10_CO1", "GDPIE11_CO1", "GDPIE01_CO1", "GDPIE12_CO1",
+                       "GDPIE13_CO1", "GDPIE14_CO1")] %>% 
+  as.list() %>% 
+nuc.div(, variance = FALSE) #0.010038
+
+pi_by_pop <- data.frame( 
+  population = c("Antigonish", "Halifax", "Maine", "Plum Island"),
+  pi = c(pi_ag, pi_hx, pi_me, pi_pie)) 
+
+
+
+```
+
+#Mantel test
+```{r}
+#Load package (sorry John!!!)
+#install.packages("geosphere")
+library(geosphere)
+
+#Load latlongs in as csv, north-south
+
+#Generate Haversine distance matrix for latlongs
+distm()
+
+#Use phist matrix, run Mantel in ade4
+mantel.rtest()
+
 ```
 
 #Map graphic
