@@ -146,9 +146,24 @@ pi_pie <- geuk_nucdiv[c("GDPIE02_CO1","GDPIE03_CO1", "GDPIE04_CO1", "GDPIE05_CO1
   as.list() %>% 
 nuc.div(, variance = FALSE) #0.010038
 
+#woods hole
+pi_wh <- geuk_nucdiv[c("GDWH04_CO1","GDWH06_CO1", "GDWH07_CO1", "GDWH09_CO1",
+                       "GDWH11_CO1", "GDWH12_CO1", "GDWH13_CO1", "GDWH14_CO1",
+                       "GDWH18_CO1", "GDWH21_CO1", "GDWH01_CO1", "GDWH02_CO1",
+                       "GDWH08_CO1", "GDWH10_CO1", "GDWH05_CO1", "GDWH15_CO1",
+                       "GDWH16_CO1", "GDWH17_CO1", "GDWH20_CO1", "GDWH22_CO1",
+                       "GDWH23_CO1", "GDWH24_CO1", "GDWH03_CO1", "GDWH31_F_OL893127_1",
+                       "GDWH32_F_OL893127_1", "GDWH33",
+                       "GDWH34", "GDWH35",
+                       "GDWH36", "GDWH37",
+                       "GDWH38", "GDWH39",
+                       "GDWH40")] %>% 
+  as.list() %>% 
+nuc.div(, variance = FALSE)
+
 pi_by_pop <- data.frame( 
-  population = c("Antigonish", "Halifax", "Maine", "Plum Island"),
-  pi = c(pi_ag, pi_hx, pi_me, pi_pie)) 
+  population = c("Antigonish", "Halifax", "Maine", "Plum Island", "Woods Hole"),
+  pi = c(pi_ag, pi_hx, pi_me, pi_pie, pi_wh)) 
 
 
 
