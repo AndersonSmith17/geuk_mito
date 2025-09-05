@@ -50,6 +50,7 @@ GeukAMOVA
 
 This will indeed give you pairwise PhiST among sites, and in this case they are spatially organized. Great! However, remember this isn't all the data in the alignment being pulled (I have that now), and I don't seem to be able to get an actual AMOVA from this package. However this package will also calculate pairwise distances, can rearrange haplotypes by different grouping variables, can do *parsimony* gene trees (unusual, and OMG they are trying to revive Templeton's method), put pie charts on a parsimony network, perhaps a few other things. So then there are methods I pulled from NESCENT:
 
+#Nescent AMOVAs
 ```{r nescent}
 
 library("pegas")
@@ -67,12 +68,29 @@ pairwise_Gst_Nei(Geuk2)
 dists<-dist.multidna(GeukData,pool=TRUE) #pool=TRUE ends up being important so this is a numeric thing
 
 #Splitting the sites up into region models
-#NOVA SCOTIA
+#NOVA SCOTIA -- now including halifax!
 scotia_strata<-data.frame(regions=factor(c(rep("north",21), rep("south",432))), populations=truepops)
 strata(Geuk2)<-scotia_strata
 setPop(Geuk2)<- ~populations
 
-pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100) #FINALLY
+pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
+#highly significant outputs: phict = 0.21, phist = 0.29
+
+#CAPE COD
+capecod_strata<-data.frame(regions=factor(c(rep("north",42), rep("south",411))), populations=truepops)
+strata(Geuk2)<-capecod_strata
+setPop(Geuk2)<- ~populations
+
+pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
+#HIGHLY significant again, phict = 0.087, phist = 0.18
+
+#CAPE HATTERAS
+hatteras_strata<-data.frame(regions=factor(c(rep("north",171), rep("south",282))), populations=truepops)
+strata(Geuk2)<-hatteras_strata
+setPop(Geuk2)<- ~populations
+
+pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
+#HIGHLY significant again, phict = 0.1027, phist = 0.165
 
 #devtools::install_github('ericarcher/strataG', build_vignettes=TRUE) #argh trying this https://github.com/EricArcher/strataG I did all but step 5 so far and then stymied
 
@@ -82,6 +100,7 @@ pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100) #FINALLY
 
 So, this works fine to get pairwise Gst (basically should be pi_tot-pi_subs // pi_tot) and it appears strongly correlated with the PhiST from the other 'haplotypes' output. Remember that these X_st methods give numbers that can be large relative to the actual genomic divergence (net nucleotide divergence), which is what I was trying to do with that package 'strataG' at the end of the chunk but it requires some tinkering with gfortran in OSX and I didn't get all the way there yet. We also now have an AMOVA, which by the way can use 2 different computational flavors:
 
+#poppr AMOVAs
 ```{r poppr}
 #picking up from the NESCENT flavor....
 
@@ -90,6 +109,16 @@ poppr.amova(Geuk2, ~regions/populations, method="ade4") #or "pegas"
 ```
 
 Other methods I used (including asking a damned LLM for a recipe, grrrr) did not work. Some are deprecated like 'popgenome' and many, circularly, come back to basically the 2 key implementations in either ade4 or pegas. Yet, pegas does a lot but does not seem to do pairwise sample metrics like PhiST, same with 'ade4'. Package 'adegenet' similar limitations. 
+
+#Nucleotide diversities (messy)
+```{r}
+geuk_nucdiv <- read.dna("allGeukSep4_done.fasta", format = "fasta")
+
+nuc.div(geuk_nucdiv, variance = FALSE)
+# total pi = 0.01163113
+
+pi_ag <- geuk_nucdiv[c("GDAG08_CO1",)]
+```
 
 #Map graphic
 ```{r}
