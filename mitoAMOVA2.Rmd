@@ -11,9 +11,9 @@ Here I'm trying to clean up my exploration from last week into cleanest ways to 
 library(pegas)
 library(ape)
 library(poppr)
-library(ade4)
 library(adegenet)
 library(spider)
+library(mmod)
 
 #john
 setwd("~/Dropbox/Anderson Geukensia 2025")
@@ -54,6 +54,7 @@ This will indeed give you pairwise PhiST among sites, and in this case they are 
 ```{r nescent}
 
 library("pegas")
+library(apex)
 GeukData <- read.multiFASTA(c("allGeukSep4_done.fasta")) #note changed to the sequences ordered by location now
 #probably do not need the read.multiFASTA at this point it is just getting data into genind and doing mostly in POPPR (AMOVA) and pairwise_Gst using (mmod).
 
@@ -174,6 +175,7 @@ pi_by_pop <- data.frame(
 #Load package (sorry John!!!)
 #install.packages("geosphere")
 library(geosphere)
+library(ade4)
 
 #Load latlongs in as csv, north-south
 
