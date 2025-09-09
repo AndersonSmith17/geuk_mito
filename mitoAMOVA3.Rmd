@@ -1,0 +1,138 @@
+---
+title: "mitoAMOVA_2"
+author: "John Wares"
+date: "2025-09-04"
+output: html_document
+---
+
+Here I'm trying to clean up my exploration from last week into cleanest ways to get pairwise divergence metrics and AMOVA for our mtDNA data. First of all, reading in the data and grabbing likely-useful libraries:
+
+```{r getstarted}
+library(pegas)
+library(ape)
+library(poppr)
+library(ade4)
+library(adegenet)
+library(spider)
+
+setwd("~/Dropbox/Anderson Geukensia 2025")
+```
+
+Next reading in the data, and first trying out a new package called 'haplotypes'. This one I messed around with a few times, at first doing what I thought to be 'random' pulls of sequences from the alignment but because the alignment was organized by the resultant phylogeny (!) it actually threw me for a loop at first until I figured out instead to really look at our data by actual site, that is drawing from the alignment "alphaGeuk3" and using a substring to sort into populations:
+
+```{r haplotypes}
+
+library(haplotypes)
+
+#geuk<-read.fas("shortGeuk.fasta")
+#fakepops<-factor(c(rep("A",26),rep("B",26),rep("C",26),rep("D",26),rep("E",26),rep("F",26),rep("G",26),rep("H",26),rep("I",26),rep("J",27)))
+#subgeuk<-read.fas("subGeuk.fasta")
+#subpops<-factor(c(rep("A",4),rep("B",4),rep("C",4),rep("D",5)))
+#GeukAMOVA<-pairPhiST(geuk,fakepops,nperm=100,negatives=FALSE)
+
+#subsubgeuk<-read.fas("geuk100.fasta")
+#subsubpops<-factor(c(rep("A",25),rep("B",25),rep("C",25),rep("D",25)))
+#GeukAMOVA<-pairPhiST(subsubgeuk,subsubpops,nperm=100,negatives=FALSE,indels="missing")
+
+alphageuk<-read.fas("alphaGeuk3.fasta")
+doneGuek<-read.fas("AllGeukSep4_done.fasta")
+#locations<-substr(alphageuk@seqnames,1,4)
+locations<-substr(doneGuek@seqnames,1,4)
+truepops<-locations
+
+GeukAMOVA<-pairPhiST(doneGuek,truepops,nperm=100,negatives=FALSE,indels="missing")
+GeukAMOVA
+
+```
+
+This will indeed give you pairwise PhiST among sites, and in this case they are spatially organized. Great! However, remember this isn't all the data in the alignment being pulled (I have that now), and I don't seem to be able to get an actual AMOVA from this package. However this package will also calculate pairwise distances, can rearrange haplotypes by different grouping variables, can do *parsimony* gene trees (unusual, and OMG they are trying to revive Templeton's method), put pie charts on a parsimony network, perhaps a few other things. So then there are methods I pulled from NESCENT:
+
+```{r nescent}
+
+library("apex")
+library("adegenet")
+library("pegas")
+library("mmod")
+library("poppr")
+
+GeukData <- read.multiFASTA(c("AllGeukSep4_done.fasta")) #note changed to the sequences ordered by location now
+#probably do not need the read.multiFASTA at this point it is just getting data into genind and doing mostly in POPPR (AMOVA) and pairwise_Gst using (mmod).
+#says my sequences are not all the same length
+plot(GeukData)
+
+locations<-substr(doneGuek@seqnames,1,4)
+truepops<-locations
+
+#Geuk2<-multidna2genind(GeukData)
+Geuk2 <-df2genind(doneGuek)
+
+my_strata<-data.frame(regions=factor(c(rep("north",21),rep("south",432))), populations=truepops) #this now splits them into regions of NOVA SCOTIA versus the REST
+strata(Geuk2)<- my_strata
+setPop(Geuk2)<- ~populations
+
+Geuk2
+
+pairwise_Gst_Nei(Geuk2)
+
+dists<-dist.multidna(GeukData,pool=TRUE) #pool=TRUE ends up being important so this is a numeric thing
+
+amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100) #FINALLY
+
+#devtools::install_github('ericarcher/strataG', build_vignettes=TRUE) #argh trying this https://github.com/EricArcher/strataG I did all but step 5 so far and then stymied
+
+#library(strataG)
+
+```
+
+So, this works fine to get pairwise Gst (basically should be pi_tot-pi_subs // pi_tot) and it appears strongly correlated with the PhiST from the other 'haplotypes' output. Remember that these X_st methods give numbers that can be large relative to the actual genomic divergence (net nucleotide divergence), which is what I was trying to do with that package 'strataG' at the end of the chunk but it requires some tinkering with gfortran in OSX and I didn't get all the way there yet. We also now have an AMOVA, which by the way can use 2 different computational flavors:
+
+```{r poppr}
+#picking up from the NESCENT flavor....
+
+poppr.amova(Geuk2, ~regions/populations, method="ade4") #or "pegas"
+
+```
+
+Other methods I used (including asking a damned LLM for a recipe, grrrr) did not work. Some are deprecated like 'popgenome' and many, circularly, come back to basically the 2 key implementations in either ade4 or pegas. Yet, pegas does a lot but does not seem to do pairwise sample metrics like PhiST, same with 'ade4'. Package 'adegenet' similar limitations. 
+
+Lastly, we want π for each sample, I think she used nuc.div from pegas.
+
+```{r}
+library(pegas)
+library(ape)
+#need data in DNAbin, it just says x is matrix or list
+
+binGeuk<-as.DNAbin(doneGuek)
+
+mmmpie<-nuc.div(binGeuk,variance=FALSE,pairwise.deletion=TRUE) #doneGuek is not right structure still not 'haplotype' or 'DNAbin'
+#ok but this isn't by sample this is across all grrr get so tired of all the data formats
+#doneGuek comes from AllGeukSep4_donev2.fasta this is unsatisfactory but works:
+
+Antigo<-binGeuk[1:11,]
+Halif<-binGeuk[12:21,]
+Maine<-binGeuk[22:28,]
+GDPIE<-binGeuk[29:42,]
+WooHo<-binGeuk[43:75,]
+Goldstr<-binGeuk[76:95,]
+Green<-binGeuk[96:114,]
+Rutg<-binGeuk[115:128,]
+Bivalv<-binGeuk[129:135,]
+Maryld<-binGeuk[136:153,]
+Virgin<-binGeuk[154:171,]
+Roank<-binGeuk[172:178,]
+Duke<-binGeuk[179:197,]
+Wilmn<-binGeuk[198:207,]
+Socar<-binGeuk[208:226,]
+Savan<-binGeuk[227:254,]
+Sapelo<-binGeuk[255:368,]
+Jekyll<-binGeuk[369:399,]
+August<-binGeuk[400:412,]
+Ponce<-binGeuk[413:437,]
+Worth<-binGeuk[438:453,]
+
+TableOne<-c(nuc.div(Antigo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Halif,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Maine,variance=FALSE,pairwise.deletion=TRUE),nuc.div(GDPIE,variance=FALSE,pairwise.deletion=TRUE),nuc.div(WooHo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Goldstr,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Green,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Rutg,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Bivalv,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Maryld,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Virgin,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Roank,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Duke,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Wilmn,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Socar,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Savan,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Sapelo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Jekyll,variance=FALSE,pairwise.deletion=TRUE),nuc.div(August,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Ponce,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Worth,variance=FALSE,pairwise.deletion=TRUE))
+
+
+```
+
+
