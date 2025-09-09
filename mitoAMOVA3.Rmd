@@ -35,7 +35,7 @@ library(haplotypes)
 #GeukAMOVA<-pairPhiST(subsubgeuk,subsubpops,nperm=100,negatives=FALSE,indels="missing")
 
 alphageuk<-read.fas("alphaGeuk3.fasta")
-doneGuek<-read.fas("AllGeukSep4_done.fasta")
+doneGuek<-read.fas("geuk_sep9.fasta")
 #locations<-substr(alphageuk@seqnames,1,4)
 locations<-substr(doneGuek@seqnames,1,4)
 truepops<-locations
@@ -55,7 +55,8 @@ library("pegas")
 library("mmod")
 library("poppr")
 
-GeukData <- read.multiFASTA(c("AllGeukSep4_done.fasta")) #note changed to the sequences ordered by location now
+GeukData <- read.multiFASTA(c("geuk_sep9.fasta"))
+#note changed to the sequences ordered by location now
 #probably do not need the read.multiFASTA at this point it is just getting data into genind and doing mostly in POPPR (AMOVA) and pairwise_Gst using (mmod).
 #says my sequences are not all the same length
 plot(GeukData)
@@ -63,9 +64,9 @@ plot(GeukData)
 locations<-substr(doneGuek@seqnames,1,4)
 truepops<-locations
 
-#Geuk2<-multidna2genind(GeukData)
-Geuk2 <-df2genind(doneGuek)
-
+Geuk2<-multidna2genind(GeukData)
+Geuk2
+Geuk2
 my_strata<-data.frame(regions=factor(c(rep("north",21),rep("south",432))), populations=truepops) #this now splits them into regions of NOVA SCOTIA versus the REST
 strata(Geuk2)<- my_strata
 setPop(Geuk2)<- ~populations
