@@ -84,7 +84,7 @@ capecod_strata<-data.frame(regions=factor(c(rep("north",42), rep("south",411))),
 strata(Geuk2)<-capecod_strata
 setPop(Geuk2)<- ~populations
 
-pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
+capecod_amova <- pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
 #HIGHLY significant again, phict = 0.087, phist = 0.18
 
 #CAPE HATTERAS
@@ -92,7 +92,7 @@ hatteras_strata<-data.frame(regions=factor(c(rep("north",171), rep("south",282))
 strata(Geuk2)<-hatteras_strata
 setPop(Geuk2)<- ~populations
 
-pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
+hatteras_amova <- pegas::amova(dists ~ regions/populations, data=strata(Geuk2),nperm=100)
 #HIGHLY significant again, phict = 0.1027, phist = 0.165
 
 #devtools::install_github('ericarcher/strataG', build_vignettes=TRUE) #argh trying this https://github.com/EricArcher/strataG I did all but step 5 so far and then stymied
@@ -119,7 +119,7 @@ library(pegas)
 library(ape)
 #need data in DNAbin, it just says x is matrix or list
 
-binGeuk<-as.DNAbin(doneGuek)
+binGeuk<-as.DNAbin(alphageuk)
 
 mmmpie<-nuc.div(binGeuk,variance=FALSE,pairwise.deletion=TRUE) #doneGuek is not right structure still not 'haplotype' or 'DNAbin'
 #ok but this isn't by sample this is across all grrr get so tired of all the data formats
@@ -150,12 +150,10 @@ Worth<-binGeuk[438:453,]
 TableOne<-c(nuc.div(Antigo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Halif,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Maine,variance=FALSE,pairwise.deletion=TRUE),nuc.div(GDPIE,variance=FALSE,pairwise.deletion=TRUE),nuc.div(WooHo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Goldstr,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Green,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Rutg,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Bivalv,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Maryld,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Virgin,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Roank,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Duke,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Wilmn,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Socar,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Savan,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Sapelo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Jekyll,variance=FALSE,pairwise.deletion=TRUE),nuc.div(August,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Ponce,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Worth,variance=FALSE,pairwise.deletion=TRUE))
 ```
 
-#Mantel test
+#Mantel test -- total
 ```{r}
-#Load package (sorry John!!!)
-#install.packages("geosphere")
+#Load packages (sorry John!!!)
 library(geosphere)
-library(ade4)
 library(vegan)
 
 
@@ -170,6 +168,111 @@ haversine_distm
 mantel(haversine_distm, phist_mat, method = "pearson", permutations = 999)
 
 #insignificant... weird
+```
+
+#Mantel test by region model
+```{r}
+#Now break it down into region models
+#NOVA SCOTIA
+scotia_geuk <- alphageuk[1:21] %>% 
+  as.dna()
+scotia_pops <-truepops[1:21]
+
+scotia_phist <- pairPhiST(scotia_geuk, scotia_pops,nperm=100,negatives=FALSE, 
+                          subset = NULL, indels = "missing", showprogbar = FALSE)
+scotia_phist_mat <- as.dist(scotia_phist$PhiST)
+
+scotia_haversine <-  latlongs_geuk %>% 
+  filter(X > 44.6) %>% 
+  distm() %>% 
+  as.dist()
+
+mantel(scotia_haversine, scotia_phist_mat, method = "pearson", permutations = 999)
+#unable to run because there are only two values north of scotial shelf
+
+no_scotia_haversine <- latlongs_geuk %>% 
+  filter(X < 44.6) %>% 
+  distm() %>% 
+  as.dist
+
+no_scotia <-alphageuk[22:453] %>% 
+  as.dna()
+no_scotia_pops <- truepops[22:453]
+no_scotia_phist <- pairPhiST(no_scotia, no_scotia_pops,nperm=100,negatives=FALSE, 
+                              subset = NULL) 
+no_scotia_phist_mat <- as.dist(no_scotia_phist$PhiST)
+
+mantel(no_scotia_haversine, no_scotia_phist_mat, method = "pearson", permutations = 999)
+#Way less significant here... meaning signs of geographic structure coming from NS
+
+#CAPE COD
+north_capecod_geuk <-alphageuk[1:42] %>% 
+  as.dna()
+north_capecod_pops <- truepops[1:42]
+
+north_capecod_phist <- pairPhiST(north_capecod_geuk, north_capecod_pops,nperm=100,negatives=FALSE, 
+                          subset = NULL, indels = "missing", showprogbar = FALSE)
+north_capecod_phist_mat <- as.dist(north_capecod_phist$PhiST)
+
+north_capecod_haversine <-  latlongs_geuk %>% 
+  filter(X > 42) %>% 
+  distm() %>% 
+  as.dist()
+
+mantel(north_capecod_haversine, north_capecod_phist_mat, method = "pearson", permutations = 999)
+#still insignificant but a TON better
+
+south_capecod_geuk <-alphageuk[43:453] %>% 
+  as.dna()
+south_capecod_pops <- truepops[43:453]
+
+south_capecod_phist <- pairPhiST(south_capecod_geuk, south_capecod_pops,nperm=100,negatives=FALSE, 
+                          subset = NULL, indels = "missing", showprogbar = FALSE)
+south_capecod_phist_mat <- as.dist(south_capecod_phist$PhiST)
+
+south_capecod_haversine <-  latlongs_geuk %>% 
+  filter(X < 42) %>% 
+  distm() %>% 
+  as.dist()
+
+mantel(south_capecod_haversine, south_capecod_phist_mat, method = "pearson", permutations = 999)
+#even more insignificant -- strong signs that there's more spatial structure in 
+#Nova Scotia than literally anywhere else 
+
+#HATTERAS
+north_hatteras_geuk <-alphageuk[1:171] %>% 
+  as.dna()
+north_hatteras_pops <- truepops[1:171]
+
+north_hatteras_phist <- pairPhiST(north_hatteras_geuk, north_hatteras_pops,nperm=100,negatives=FALSE, 
+                          subset = NULL, indels = "missing", showprogbar = FALSE)
+north_hatteras_phist_mat <- as.dist(north_hatteras_phist$PhiST)
+
+north_hatteras_haversine <-  latlongs_geuk %>% 
+  filter(X > 37) %>% 
+  distm() %>% 
+  as.dist()
+
+mantel(north_hatteras_haversine, north_hatteras_phist_mat, method = "pearson", permutations = 999)
+#Much less significant
+
+south_hatteras_geuk <-alphageuk[172:453] %>% 
+  as.dna()
+south_hatteras_pops <- truepops[172:453]
+
+south_hatteras_phist <- pairPhiST(south_hatteras_geuk, south_hatteras_pops,nperm=100,negatives=FALSE, 
+                          subset = NULL, indels = "missing", showprogbar = FALSE)
+south_hatteras_phist_mat <- as.dist(south_hatteras_phist$PhiST)
+
+south_hatteras_haversine <-  latlongs_geuk %>% 
+  filter(X < 37) %>% 
+  distm() %>% 
+  as.dist()
+
+mantel(south_hatteras_haversine, south_hatteras_phist_mat, method = "pearson", permutations = 999)
+#way less significant here - 0.091 -- IBD south of Hatteras?
+
+
 ```
 
 #Map graphic
