@@ -7,7 +7,7 @@ output: html_document
 
 Here I'm trying to clean up my exploration from last week into cleanest ways to get pairwise divergence metrics and AMOVA for our mtDNA data. First of all, reading in the data and grabbing likely-useful libraries:
 
-```{r getstarted}
+```{r getstarted, echo = FALSE}
 library(pegas)
 library(ape)
 library(poppr)
@@ -39,12 +39,14 @@ library(haplotypes)
 #subsubpops<-factor(c(rep("A",25),rep("B",25),rep("C",25),rep("D",25)))
 #GeukAMOVA<-pairPhiST(subsubgeuk,subsubpops,nperm=100,negatives=FALSE,indels="missing")
 
-alphageuk<-read.fas("allGeukSep4_done.fasta")
+alphageuk<-read.fas("geuk_sep9.fasta")
 locations<-substr(alphageuk@seqnames,1,4)
 truepops<-locations
 
-GeukAMOVA<-pairPhiST(alphageuk,truepops,nperm=100,negatives=FALSE,indels="missing")
+GeukAMOVA<-pairPhiST(alphageuk,truepops,nperm=100,negatives=FALSE,indels="missing") 
 GeukAMOVA
+phist_mat <- as.dist(GeukAMOVA$PhiST)
+
 
 ```
 
@@ -55,7 +57,7 @@ This will indeed give you pairwise PhiST among sites, and in this case they are 
 
 library("pegas")
 library(apex)
-GeukData <- read.multiFASTA(c("allGeukSep4_done.fasta")) #note changed to the sequences ordered by location now
+GeukData <- read.multiFASTA(c("geuk_sep9.fasta")) #note changed to the sequences ordered by location now
 #probably do not need the read.multiFASTA at this point it is just getting data into genind and doing mostly in POPPR (AMOVA) and pairwise_Gst using (mmod).
 
 #Prepping genind 
@@ -111,63 +113,41 @@ poppr.amova(Geuk2, ~regions/populations, method="ade4") #or "pegas"
 
 Other methods I used (including asking a damned LLM for a recipe, grrrr) did not work. Some are deprecated like 'popgenome' and many, circularly, come back to basically the 2 key implementations in either ade4 or pegas. Yet, pegas does a lot but does not seem to do pairwise sample metrics like PhiST, same with 'ade4'. Package 'adegenet' similar limitations. 
 
-#Nucleotide diversities (messy but only uses pegas)
+#Nucleotide diversities
 ```{r}
-#Create DNAbin
-geuk_nucdiv <- read.dna("allGeukSep4_done.fasta", format = "fasta") 
+library(pegas)
+library(ape)
+#need data in DNAbin, it just says x is matrix or list
 
-nuc.div(geuk_nucdiv, variance = FALSE)
-# total pi = 0.01163113
+binGeuk<-as.DNAbin(doneGuek)
 
-#antigonish
-pi_ag <- geuk_nucdiv[c("GDAG08_CO1","GDAG01_CO1", "GDAG02_CO1", "GDAG03_CO1",
-                       "GDAG04_CO1", "GDAG05_CO1", "GDAG06_CO1", "GDAG07_CO1", 
-                       "GDAG08_CO1", "GDAG09_CO1", "GDAG10_CO1", "GDAG11_CO1")] %>% 
-  as.list() %>% 
-nuc.div(, variance = FALSE) #0.00466
+mmmpie<-nuc.div(binGeuk,variance=FALSE,pairwise.deletion=TRUE) #doneGuek is not right structure still not 'haplotype' or 'DNAbin'
+#ok but this isn't by sample this is across all grrr get so tired of all the data formats
+#doneGuek comes from AllGeukSep4_donev2.fasta this is unsatisfactory but works:
 
-#halifax
-pi_hx <- geuk_nucdiv[c("GDHX10","GDHX2", "GDHX3", "GDHX4",
-                       "GDHX5", "GDHX6", "GDHX7", "GDHX8", 
-                       "GDHX9")] %>% 
-  as.list() %>% 
-nuc.div(, variance = FALSE) #0 -- private haplotype!
+Antigo<-binGeuk[1:11,]
+Halif<-binGeuk[12:21,]
+Maine<-binGeuk[22:28,]
+GDPIE<-binGeuk[29:42,]
+WooHo<-binGeuk[43:75,]
+Goldstr<-binGeuk[76:95,]
+Green<-binGeuk[96:114,]
+Rutg<-binGeuk[115:128,]
+Bivalv<-binGeuk[129:135,]
+Maryld<-binGeuk[136:153,]
+Virgin<-binGeuk[154:171,]
+Roank<-binGeuk[172:178,]
+Duke<-binGeuk[179:197,]
+Wilmn<-binGeuk[198:207,]
+Socar<-binGeuk[208:226,]
+Savan<-binGeuk[227:254,]
+Sapelo<-binGeuk[255:368,]
+Jekyll<-binGeuk[369:399,]
+August<-binGeuk[400:412,]
+Ponce<-binGeuk[413:437,]
+Worth<-binGeuk[438:453,]
 
-#maine
-pi_me <- geuk_nucdiv[c("GDME01_CO1","GDME02_CO1", "GDME03_CO1", "GDME05_CO1",
-                       "GDME06_CO1", "GDME07_CO1", "GDME08_CO1")] %>% 
-  as.list() %>% 
-nuc.div(, variance = FALSE) #0.01098 -- note how it picks up below HX
-
-#plum island
-pi_pie <- geuk_nucdiv[c("GDPIE02_CO1","GDPIE03_CO1", "GDPIE04_CO1", "GDPIE05_CO1",
-                       "GDPIE06_CO1", "GDPIE07_CO1", "GDPIE08_CO1", "GDPIE09_CO1",
-                       "GDPIE10_CO1", "GDPIE11_CO1", "GDPIE01_CO1", "GDPIE12_CO1",
-                       "GDPIE13_CO1", "GDPIE14_CO1")] %>% 
-  as.list() %>% 
-nuc.div(, variance = FALSE) #0.010038
-
-#woods hole
-pi_wh <- geuk_nucdiv[c("GDWH04_CO1","GDWH06_CO1", "GDWH07_CO1", "GDWH09_CO1",
-                       "GDWH11_CO1", "GDWH12_CO1", "GDWH13_CO1", "GDWH14_CO1",
-                       "GDWH18_CO1", "GDWH21_CO1", "GDWH01_CO1", "GDWH02_CO1",
-                       "GDWH08_CO1", "GDWH10_CO1", "GDWH05_CO1", "GDWH15_CO1",
-                       "GDWH16_CO1", "GDWH17_CO1", "GDWH20_CO1", "GDWH22_CO1",
-                       "GDWH23_CO1", "GDWH24_CO1", "GDWH03_CO1", "GDWH31_F_OL893127_1",
-                       "GDWH32_F_OL893127_1", "GDWH33",
-                       "GDWH34", "GDWH35",
-                       "GDWH36", "GDWH37",
-                       "GDWH38", "GDWH39",
-                       "GDWH40")] %>% 
-  as.list() %>% 
-nuc.div(, variance = FALSE)
-
-pi_by_pop <- data.frame( 
-  population = c("Antigonish", "Halifax", "Maine", "Plum Island", "Woods Hole"),
-  pi = c(pi_ag, pi_hx, pi_me, pi_pie, pi_wh)) 
-
-
-
+TableOne<-c(nuc.div(Antigo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Halif,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Maine,variance=FALSE,pairwise.deletion=TRUE),nuc.div(GDPIE,variance=FALSE,pairwise.deletion=TRUE),nuc.div(WooHo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Goldstr,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Green,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Rutg,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Bivalv,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Maryld,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Virgin,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Roank,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Duke,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Wilmn,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Socar,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Savan,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Sapelo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Jekyll,variance=FALSE,pairwise.deletion=TRUE),nuc.div(August,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Ponce,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Worth,variance=FALSE,pairwise.deletion=TRUE))
 ```
 
 #Mantel test
@@ -177,24 +157,26 @@ pi_by_pop <- data.frame(
 library(geosphere)
 library(ade4)
 
-#Load latlongs in as csv, north-south
 
+#Load latlongs in as csv, north-south
+latlongs_geuk <- read_csv("./latlongs.csv")
 #Generate Haversine distance matrix for latlongs
-distm()
+haversine_distm <- distm(latlongs_geuk) %>% 
+  as.dist()
 
 #Use phist matrix, run Mantel in ade4
-mantel.rtest()
+mantel(haversine_distm, GeukAMOVA, method = "pearson", permutations = 99)
+
 
 ```
 
 #Map graphic
 ```{r}
 #Install and load packages
-install.packages("mapdata")
-install.packages("maptools", 
-                 repos = "https://packagemanager.posit.co/cran/2023-10-13")
+#install.packages("mapdata")
+#install.packages("maptools", 
+                 #repos = "https://packagemanager.posit.co/cran/2023-10-13")
 library (tidyverse)
-library(maptools)
 library(mapdata)
 
 #Make df of all sampling points
