@@ -156,18 +156,20 @@ TableOne<-c(nuc.div(Antigo,variance=FALSE,pairwise.deletion=TRUE),nuc.div(Halif,
 #install.packages("geosphere")
 library(geosphere)
 library(ade4)
+library(vegan)
 
 
 #Load latlongs in as csv, north-south
-latlongs_geuk <- read_csv("./latlongs.csv")
+latlongs_geuk <- read.csv("./latlongs.csv")
 #Generate Haversine distance matrix for latlongs
 haversine_distm <- distm(latlongs_geuk) %>% 
   as.dist()
-
+phist_mat
+haversine_distm
 #Use phist matrix, run Mantel in ade4
-mantel(haversine_distm, GeukAMOVA, method = "pearson", permutations = 99)
+mantel(haversine_distm, phist_mat, method = "pearson", permutations = 999)
 
-
+#insignificant... weird
 ```
 
 #Map graphic
